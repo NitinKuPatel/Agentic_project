@@ -5,7 +5,7 @@ import sys
 # Force UTF-8 for windows console
 sys.stdout.reconfigure(encoding='utf-8')
 
-key = "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"
+key = "api_key"
 
 def test_key():
     print(f"Testing key: {key[:10]}...")
