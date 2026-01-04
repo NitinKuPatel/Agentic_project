@@ -1,0 +1,3 @@
+Welcome! This is public information for Guests.
+Our office hours are 9 AM - 5 PM.
+Everyone (Guest, Customer, Employee, Admin) can see this.

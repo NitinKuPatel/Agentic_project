@@ -1,0 +1,17 @@
+**Agentic AI Bot Project Overview**
+
+The Agentic AI Bot is an enterprise-grade knowledge assistant designed to provide accurate, consistent answers based strictly on uploaded documentation. Unlike generic chatbots, it refuses to guess and will fallback to a safe state if the answer is not found in its knowledge base.
+
+**Core Features**
+1. **RBAC (Role-Based Access Control)**: Documents can be restricted to specific user roles (e.g., ADMIN, MANAGER, EMPLOYEE).
+2. **Hybrid Retrieval**: Combines vector search (FAISS) with keyword search for maximum accuracy.
+3. **Auditability**: Every answer is traced back to its source document and chunk.
+4. **Local First**: Built to run with local embeddings and storage for privacy, but extensible to cloud providers like OpenAI.
+
+**Project Structure**
+- `app/orchestrator`: Contains the brain of the agent.
+- `app/domain`: Contains business logic for Knowledge, retrieval, and response.
+- `app/infrastructure`: Drivers for MongoDB, Redis, and FAISS.
+
+**Security**
+The system uses JWT (JSON Web Tokens) for authentication. The default admin user is 'admin' with password 'password'. This user has full access to ingest and query all documents.

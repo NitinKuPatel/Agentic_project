@@ -1,0 +1,3 @@
+This is general information for all Employees.
+The coffee machine is located in the break room.
+Everyone (Admin, Manager, Employee) can see this.

@@ -1,0 +1,32 @@
+**Issue:** "Customer paid booking amount 3 days ago, but portal still shows 'Payment Pending', causing confusion"
+**Booking Status Troubleshooting:**
+
+Bot: Checking Dholera booking status sync...
+
+**Booking Details:**
+- Customer: Mr. Sharma
+- Plot: DHL-RES-15-33
+- Amount: ₹3 lakhs
+- Paid: August 12, 3:15 PM
+- Status: Still "Pending"
+
+**Sync Issues Found:**
+
+1. **Webhook Failure:**
+   Razorpay → Website webhook failing
+   Manual verification shows payment successful
+   [Manually Update Status] [Fix Webhook]
+
+2. **Document Checklist:**
+   All documents uploaded ✓
+   But: Aadhaar verification pending
+   Status stuck at 90%
+   [Bypass Temporary] [Send Reminder]
+
+3. **Workflow Step:**
+   Requires "Sales Manager Approval"
+   Manager on leave, no backup
+   [Assign Alternate Approver]
+
+**Immediate Resolution:**
+[Force Status Update] [Send Confirmation Email] [Generate Receipt]

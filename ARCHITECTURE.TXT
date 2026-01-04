@@ -1,0 +1,321 @@
+Perfect! Let’s consolidate everything we’ve discussed into **one final, enterprise-ready architecture document** for your Agentic AI KB Bot using **FastAPI, Python, MongoDB, and vector DB**.
+
+This will include:
+
+* PRD
+* Architecture diagram & pipeline
+* MongoDB schema & usage
+* Retrieval, fallback, RBAC, audit & lineage
+* Performance & deployment considerations
+
+You can save this as:
+
+👉 **`agentic_ai_kb_bot_final_architecture.md`**
+
+---
+
+```md
+# 📘 Agentic AI Knowledge-Base Assistant  
+### Final Enterprise Architecture Document (FastAPI + Python + MongoDB + Vector DB)
+
+---
+
+## 0. Executive Summary
+
+This document defines the **enterprise-grade architecture** for the Agentic AI KB Bot.  
+It ensures:
+
+- Accurate, KB-grounded answers  
+- Role-based access control (RBAC)  
+- Auditability & reproducibility  
+- Deterministic fallback in failures  
+- Cost and SLA control  
+- Full lineage of documents and answers  
+
+> This is not a general chatbot; it is a **controlled, agentic AI system**.
+
+---
+
+## 1. Core Design Principles
+
+1. Truth comes from documents, not the model.  
+2. Every answer must be traceable and reproducible.  
+3. Every answer must be authorized based on user role.  
+4. Failures must be safe and explicit.  
+5. Ambiguity must be classified, not guessed.  
+6. Cost and usage must be bounded.  
+7. The system must degrade gracefully if LLM or retrieval fails.
+
+---
+
+## 2. High-Level Architecture
+
+```
+
+[ Client (Web/App/API) ]
+│
+▼
+[ FastAPI Gateway ]
+- Auth / JWT / OAuth
+- Rate limiting
+- Timeout enforcement
+│
+▼
+[ Agent Orchestrator ]
+- Query intake
+- Authorization & RBAC
+- Ambiguity classifier
+- KB snapshot binding
+- Hybrid retrieval controller
+- Context controller
+- Response generator / fallback
+- Audit logger
+│
+▼
+┌────────────────────────────┐     ┌───────────────────┐
+│ MongoDB (System of Record) │     │ Vector DB (FAISS) │
+│  - KB metadata             │     │  - Embeddings     │
+│  - Document versions       │     │  - Chunk vectors  │
+│  - Snapshots               │     └───────────────────┘
+│  - RBAC roles              │
+│  - Audit logs              │
+└────────────────────────────┘
+│
+▼
+[ Object Storage (S3/MinIO) ]
+- Raw document files
+- Attachments / PDFs
+│
+▼
+[ Redis / Cache Layer ]
+- Frequently accessed queries
+- Snapshot ID cache
+- ACL resolution cache
+
+````
+
+---
+
+## 3. Detailed Agentic Pipeline
+
+1. **Query Intake**
+   - Normalize & hash query
+   - Assign unique `query_id`
+2. **Authorization & RBAC**
+   - Resolve user roles
+   - Enforce document-level ACLs
+3. **Ambiguity Classification**
+   - Document-scope ambiguity → forced clarification
+   - Semantic ambiguity → optional clarification
+4. **KB Snapshot Binding**
+   - Bind query to immutable `kb_snapshot_id` and `active_doc_set_id`
+5. **Hybrid Retrieval**
+   - Vector search (FAISS / Milvus)
+   - BM25 keyword search
+   - ACL filtering applied before retrieval
+6. **Context Controller**
+   - Validate similarity threshold
+   - Deduplicate chunks
+   - Token budget enforcement
+7. **Response Generation**
+   - LLM synthesis if available
+   - Fallback mode: top chunks verbatim
+8. **Response Validation**
+   - Source citations
+   - Confidence band assignment
+9. **Audit Logging**
+   - Full trace of query → retrieval → response
+   - Snapshot and chunk IDs recorded
+10. **Human-in-the-loop Escalation**
+    - Triggered on low confidence, conflict, or sensitive query
+
+---
+
+## 4. MongoDB Schema
+
+### 4.1 `documents`
+```json
+{
+  "_id": "doc_123",
+  "title": "Leave Policy 2024",
+  "status": "ACTIVE",
+  "visibility": ["HR", "MANAGER"],
+  "current_version": 3,
+  "created_at": "2024-01-10"
+}
+````
+
+### 4.2 `document_versions`
+
+```json
+{
+  "_id": "doc_123_v3",
+  "doc_id": "doc_123",
+  "version": 3,
+  "content_hash": "sha256...",
+  "approved_by": "user_45",
+  "approved_at": "2024-02-01",
+  "activated_at": "2024-02-02",
+  "chunk_ids": ["c1", "c2"],
+  "snapshot_ids": ["snap_202402"]
+}
+```
+
+### 4.3 `kb_snapshots`
+
+```json
+{
+  "_id": "snap_202402",
+  "active_doc_versions": ["doc_123_v3", "doc_890_v1"],
+  "created_at": "2024-02-02",
+  "immutable": true
+}
+```
+
+### 4.4 `chunks`
+
+```json
+{
+  "_id": "chunk_c1",
+  "doc_id": "doc_123",
+  "version": 3,
+  "text": "Employees are entitled to 24 leaves...",
+  "visibility": ["HR"],
+  "embedding_id": "faiss_8872"
+}
+```
+
+### 4.5 `audit_logs`
+
+```json
+{
+  "_id": "audit_999",
+  "query_id": "q_abc",
+  "user_id": "u_123",
+  "role": "EMPLOYEE",
+  "snapshot_id": "snap_202402",
+  "retrieved_chunks": ["chunk_c1"],
+  "response_type": "LLM",
+  "fallback": false,
+  "timestamp": "2024-03-14T10:21:00Z"
+}
+```
+
+### 4.6 `users`
+
+```json
+{
+  "_id": "u_123",
+  "roles": ["EMPLOYEE"],
+  "rate_limit": 60
+}
+```
+
+---
+
+## 5. FastAPI Project Structure
+
+```
+app/
+├── main.py
+├── api/
+│   ├── routes/
+│   │   └── query.py
+│   └── dependencies.py
+├── core/
+│   ├── config.py
+│   ├── auth.py
+│   └── rate_limit.py
+├── orchestrator/
+│   └── agent.py
+├── domain/
+│   ├── query/
+│   ├── knowledge/
+│   ├── retrieval/
+│   ├── response/
+│   └── audit/
+├── infrastructure/
+│   ├── vector/
+│   ├── storage/
+│   └── cache/
+├── observability/
+│   ├── logging.py
+│   └── metrics.py
+└── tests/
+```
+
+---
+
+## 6. Async & Performance Considerations
+
+* Fully async: FastAPI + Motor (MongoDB async client)
+* Circuit breakers on:
+
+  * LLM API
+  * Vector DB
+* Parallel retrieval for BM25 + vector search
+* Redis cache for frequent queries and snapshot metadata
+
+---
+
+## 7. Security & Compliance
+
+* Role-based access enforced before retrieval
+* MongoDB stores **full audit + lineage**
+* All fallback and LLM responses logged
+* Immutable snapshots for reproducibility
+* Sensitive queries → human-in-the-loop
+
+---
+
+## 8. Usage Governance
+
+* Rate limiting by user / role / tenant
+* Query deduplication by semantic similarity
+* Cost budgets per tenant
+* Automatic fallback to keyword-only mode if cost or latency thresholds exceeded
+
+---
+
+## 9. Deployment Recommendations
+
+* Containerized using Docker
+* Orchestrator + FastAPI behind Nginx / API Gateway
+* MongoDB replica set for HA
+* FAISS / Vector DB separate cluster
+* Redis for cache / rate-limits
+* Observability: Prometheus + Grafana + ELK stack
+
+---
+
+## 10. Agentic Characteristics
+
+1. **Plans:** Selects retrieval, fallback, and LLM paths
+2. **Executes:** Retrieves docs, prepares context, generates answers
+3. **Critiques:** Validates answers, enforces RBAC, logs for audit
+4. **Recovers:** Automatically falls back to deterministic mode
+5. **Replays:** Supports full historical reproduction of answers
+
+---
+
+## 11. Audit & Compliance Readiness
+
+* Query bound to snapshot and document versions
+* Full lineage metadata stored
+* Immutable audit logs
+* Human-in-the-loop escalation for sensitive queries
+* All operations replayable offline
+
+---
+
+## 12. Summary
+
+This architecture ensures:
+
+* Enterprise-safe and auditable Agentic AI
+* FastAPI handles async request orchestration
+* MongoDB stores all metadata, snapshots, RBAC, and audit logs
+* Vector DB (FAISS) handles embedding search
+* Deterministic fallback ensures SLA compliance
+* Cost, performance, and access controls are enforced
+

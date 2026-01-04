@@ -1,0 +1,3 @@
+Internal Memo: The holiday party is on Friday.
+Customers and Guests must NOT see this.
+Only Employees and Admins can read this.

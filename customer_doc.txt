@@ -1,0 +1,3 @@
+Dear Customer, thank you for your business.
+Your loyalty points balance is 500.
+Guests cannot see this. Employees and Admins can.

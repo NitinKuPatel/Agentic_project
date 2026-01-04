@@ -1,0 +1,342 @@
+# 📘 Product Requirements Document (PRD)
+## Agentic AI Knowledge-Base Assistant
+### Final Enterprise-Grade Specification (vFinal)
+
+---
+
+## 0. Executive Summary
+
+This document defines the requirements for building an **enterprise-grade Agentic AI Knowledge-Base Assistant** that delivers **fast, accurate, permission-aware, and reproducible answers**, strictly grounded in an approved knowledge base.
+
+The system is explicitly designed to:
+- Minimize hallucinations
+- Support audits and compliance
+- Prevent data leakage
+- Degrade gracefully under failure
+- Maintain predictable cost and performance
+
+This is **not a chatbot**.  
+It is a **controlled AI decision system**.
+
+---
+
+## 1. Core Design Principles (Non-Negotiable)
+
+1. **Truth comes from documents, not the model**
+2. **Every answer must be traceable**
+3. **Every answer must be authorized**
+4. **Silence is better than guessing**
+5. **Failures must be explicit and graceful**
+6. **Costs and usage must be bounded**
+7. **Ambiguity must be classified, not guessed**
+
+---
+
+## 2. Goals & Non-Goals
+
+### 2.1 Goals
+- Provide KB-grounded answers only
+- Achieve sub-2s P95 response time
+- Ensure zero silent hallucinations
+- Support regulated enterprise environments
+- Enable full audit replay of historical answers
+
+### 2.2 Non-Goals
+- Open-domain general chat
+- Autonomous actions without approval
+- Numeric probability confidence scores
+- Implicit learning from user conversations
+
+---
+
+## 3. Target Users & Roles
+
+| Role | Description |
+|----|------------|
+| End User | Queries knowledge base |
+| Manager | Accesses restricted internal docs |
+| Admin | Manages KB lifecycle |
+| Auditor | Reviews historical decisions |
+
+---
+
+## 4. Knowledge Governance & Lineage (Critical)
+
+### 4.1 Knowledge Lifecycle
+Each document MUST move through:
+
+
+Uploaded → Validated → Approved → Activated → Archived
+
+
+Only **Activated** documents are retrievable.
+
+---
+
+### 4.2 Versioning & Lineage Metadata
+Each document version stores:
+- Document ID
+- Version number
+- Content hash (SHA-256)
+- Approval timestamp
+- Approver identity
+- Activation timestamp
+- Visibility scope (ACL)
+
+---
+
+### 4.3 KB Snapshotting & Reproducibility
+Each user query is bound to:
+- `kb_snapshot_id`
+- `kb_version_hash`
+- `active_document_set_id`
+
+Historical snapshots:
+- Are immutable (read-only)
+- Can be replayed offline
+- Allow full answer reconstruction for audits
+
+---
+
+## 5. Answer Authorization Layer (RBAC)
+
+### 5.1 Document Visibility
+Each document chunk includes:
+- Visibility level (Public / Internal / Restricted / Confidential)
+- Allowed user roles
+
+---
+
+### 5.2 Authorization-Aware Retrieval
+- ACL filtering occurs **before retrieval and re-ranking**
+- Unauthorized documents are never surfaced to the model
+
+---
+
+### 5.3 Safe Authorization Response
+If relevant info exists but user lacks permission:
+
+> “This information exists in the knowledge base but is not accessible at your permission level.”
+
+---
+
+## 6. Query Understanding & Ambiguity Classification
+
+### 6.1 Semantic Routing
+The system determines:
+- Retrieval required (Yes / No)
+- Out-of-scope (Yes / No)
+- Ambiguity present (Yes / No)
+
+No classic intent classification is used.
+
+---
+
+### 6.2 Ambiguity Classification (Mandatory)
+
+#### A. Document-Scope Ambiguity (FORCED)
+Example:
+> “Explain the policy.”
+
+Action:
+- Ask clarification (blocking)
+- Provide document options
+- No answer generated until resolved
+
+---
+
+#### B. Semantic Ambiguity (OPTIONAL)
+Example:
+> “Leave policy details”
+
+Action:
+- Ask clarification once OR
+- Provide safest partial answer with disclaimer
+
+All ambiguity decisions are logged.
+
+---
+
+## 7. Retrieval, Ranking & Context System
+
+### 7.1 Knowledge Processing
+- Chunking: 400–700 tokens
+- Overlap: 10–20%
+- Metadata enrichment required
+
+---
+
+### 7.2 Hybrid Retrieval
+- Vector search (semantic)
+- BM25 keyword search
+- Weighted merge + deduplication
+
+---
+
+### 7.3 Adaptive Re-ranking
+- Re-rank top 10 candidates
+- Select top 3–5 chunks
+- Skip re-ranking for cached / FAQ queries
+- Auto-disable under latency pressure
+
+---
+
+### 7.4 Context Controller (Strict)
+- Similarity threshold enforced
+- Token budget enforced
+- Deduplication mandatory
+- Context structuring with source & section
+
+If validation fails → **no answer generated**
+
+---
+
+## 8. Response Generation & Guardrails
+
+### 8.1 Generation Rules
+- Answers must be directly derivable from context
+- No extrapolation or assumptions
+- Exceptions and constraints must be stated
+
+---
+
+### 8.2 Safe Failure Responses
+Standard responses for:
+- Missing data
+- Conflicting documents
+- Out-of-scope queries
+
+---
+
+## 9. Deterministic Non-LLM Fallback Mode
+
+### 9.1 Fallback Triggers
+- LLM unavailable / rate-limited
+- SLA breach risk
+- Budget exceeded
+- Degraded system mode
+
+---
+
+### 9.2 Fallback Behavior
+- No synthesis
+- Return top retrieved excerpts verbatim
+- Include source metadata
+- Label as **“Fallback Response”**
+
+System must never go dark.
+
+---
+
+## 10. Confidence & Trust Model
+
+### 10.1 Confidence Representation
+- Qualitative only:
+  - High
+  - Medium
+  - Low
+
+### 10.2 Anti Over-Trust Measures
+- Mandatory source citation
+- Disclaimers for Medium / Low confidence
+- No numeric confidence percentages
+
+---
+
+## 11. Memory System (Controlled)
+
+- Short-term memory only (last 1–2 turns)
+- Auto-reset on topic shift
+- No factual storage
+- Memory excluded from retrieval context
+
+---
+
+## 12. Usage Governance & Cost Control
+
+### 12.1 Rate Limiting
+- Per-user
+- Per-role
+- Per-tenant
+
+---
+
+### 12.2 Query Deduplication
+- Semantic similarity detection
+- Cached response reuse
+- Probe prevention
+
+---
+
+### 12.3 Cost Governance
+- Hard token budgets
+- Soft warnings
+- Automatic degradation path:
+
+Full RAG → Hybrid → Keyword-only → Fallback
+
+
+---
+
+## 13. Observability, Audit & Evaluation
+
+### 13.1 Mandatory Logging
+Each interaction logs:
+- Query
+- User & role
+- KB snapshot ID
+- Authorized document IDs
+- Ambiguity classification
+- Fallback status
+- Final response type
+- Latency & token usage
+
+---
+
+### 13.2 Continuous Evaluation
+- Golden question set
+- Scheduled regression runs
+- Drift detection alerts
+
+---
+
+## 14. Human-in-the-Loop Escalation
+
+Triggered when:
+- Confidence is Low
+- Sources conflict
+- Sensitive policy queried
+
+Escalation updates **KB**, not model behavior.
+
+---
+
+## 15. Performance & SLA Targets
+
+| Metric | Target |
+|----|----|
+| P95 Response Time | <2 seconds |
+| Hallucination Rate | <0.5% |
+| Unauthorized Data Leakage | 0 |
+| Audit Replay Success | 100% |
+
+---
+
+## 16. Final Architectural Statement
+
+> **This system does not optimize for fluency.  
+It optimizes for correctness, authorization, reproducibility, and trust.  
+It is designed to fail safely and explain itself under audit.**
+
+---
+
+## ✅ FINAL OUTCOME
+
+This PRD defines a:
+- Fully agentic
+- Enterprise-safe
+- Audit-defensible
+- Cost-controlled
+- Production-ready AI system
+
+Anything less is a chatbot.

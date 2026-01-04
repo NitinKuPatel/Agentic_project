@@ -1,0 +1,4 @@
+This is for Managers only.
+The quarterly strategy is to expand to Mars.
+Admins can see this too because they are superusers (or explicitly added).
+Employees should NOT see this.
